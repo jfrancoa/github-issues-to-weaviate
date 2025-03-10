@@ -1,0 +1,44 @@
+name: 'GitHub Issues to Weaviate'
+description: 'Reads GitHub issues and vectorizes them into a Weaviate instance'
+author: 'GitHub Action User'
+
+inputs:
+  weaviate_url:
+    description: 'URL of the Weaviate instance'
+    required: true
+  weaviate_api_key:
+    description: 'API key for authenticating with Weaviate'
+    required: true
+  github_token:
+    description: 'GitHub token to access issues'
+    required: true
+    default: ${{ github.token }}
+  target_repo_owner:
+    description: 'Owner of the GitHub repository to fetch issues from (optional, defaults to current repo)'
+    required: false
+    default: ${{ github.repository_owner }}
+  target_repo_name:
+    description: 'Name of the GitHub repository to fetch issues from (optional, defaults to current repo)'
+    required: false
+    default: ${{ github.event.repository.name }}
+  class_name:
+    description: 'Weaviate class name to store the vectorized issues'
+    required: false
+    default: 'GitHubIssue'
+  batch_size:
+    description: 'Number of issues to process in a single batch'
+    required: false
+    default: '100'
+  include_closed:
+    description: 'Whether to include closed issues (true/false)'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+
+branding:
+  icon: 'database'
+  color: 'blue'
+
