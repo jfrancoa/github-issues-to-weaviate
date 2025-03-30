@@ -22,7 +22,7 @@ class GitHubIssueVectorizer:
         # Get inputs from GitHub Action
         self.github_token = os.getenv("INPUT_GITHUB_TOKEN")
         self.weaviate_url = os.getenv("INPUT_WEAVIATE_URL")
-        self.weaviate_api_key = os.getenv("INPUT_WEAVIATE_API_KEY")
+        self.weaviate_api_key = os.getenv("INPUT_WEAVIATE_API_KEY","")
         
         # Optional: Set custom repository (default is the current repository)
         self.repo_owner = os.getenv("INPUT_TARGET_REPO_OWNER", "")
@@ -48,8 +48,6 @@ class GitHubIssueVectorizer:
         """Validate that all required inputs are provided."""
         missing_inputs = []
         
-        if not self.github_token:
-            missing_inputs.append("github_token")
         if not self.weaviate_url:
             missing_inputs.append("weaviate_url")
         if not self.repo_owner:
@@ -64,14 +62,15 @@ class GitHubIssueVectorizer:
         """Connect to Weaviate instance and ensure schema exists."""
         try:
             # Connect to Weaviate using v4 client
-            if self.weaviate_api_key:
-                self.client = weaviate.connect_to_weaviate(
+            if "localhost" in self.weaviate_url:
+                self.client = weaviate.connect_to_local(
                     url=self.weaviate_url,
-                    auth_credentials=weaviate.classes.init.Auth.api_key(self.weaviate_api_key),
+                    auth_credentials=weaviate.classes.init.Auth.api_key(self.weaviate_api_key) if self.weviate_api_key != "" else None,
                 )
             else:
-                self.client = weaviate.connect_to_weaviate(
+                self.client = weaviate.connect_to_wcs(
                     url=self.weaviate_url,
+                    auth_credentials=weaviate.classes.init.Auth.api_key(self.weaviate_api_key) if self.weviate_api_key != "" else None,
                 )
             
             logger.info(f"Connected to Weaviate at {self.weaviate_url}")
@@ -87,16 +86,15 @@ class GitHubIssueVectorizer:
     def _ensure_schema_exists(self):
         """Ensure the GitHubIssue class exists in Weaviate."""
         # Check if class exists
-        try:
             # This will raise an exception if the class doesn't exist
-            self.client.collections.get(self.class_name)
+        if self.client.collections.exists(self.class_name):
             logger.info(f"Schema class {self.class_name} already exists in Weaviate")
-        except weaviate.exceptions.WeaviateEntityDoesNotExistException:
+        else:
             # Define class for GitHub issues
             self.client.collections.create(
                 name=self.class_name,
                 description="GitHub issue vectorized for semantic search",
-                vectorizer_config=Configure.Vectorizer.text2vec_transformers(),
+                vectorizer_config=Configure.Vectorizer.text2vec_contextionary(),
                 properties=[
                     {
                         "name": "title",
