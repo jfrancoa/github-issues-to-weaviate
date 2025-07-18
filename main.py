@@ -2,11 +2,12 @@
 
 import os
 import sys
-import json
+import uuid
 import logging
 import requests
 import weaviate
-from weaviate.classes.config import Configure
+from weaviate.classes.config import Configure, Property, DataType, Tokenization
+from weaviate.collections.classes.config_base import _ConfigCreateModel
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
@@ -16,6 +17,8 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger("github-issues-vectorizer")
+
+
 
 class GitHubIssueVectorizer:
     def __init__(self):
@@ -27,6 +30,7 @@ class GitHubIssueVectorizer:
         # Optional: Set custom repository (default is the current repository)
         self.repo_owner = os.getenv("INPUT_TARGET_REPO_OWNER", "")
         self.repo_name = os.getenv("INPUT_TARGET_REPO_NAME", "")
+        self.vectorizer = os.getenv("INPUT_VECTORIZER", "text2vec-weaviate")
         
         # GitHub repository context from environment (for current repo)
         if not self.repo_owner or not self.repo_name:
@@ -35,7 +39,7 @@ class GitHubIssueVectorizer:
                 self.repo_owner, self.repo_name = github_repository.split("/", 1)
         
         # Optional parameters
-        self.class_name = os.getenv("INPUT_CLASS_NAME", "GitHubIssue")
+        self.class_name = os.getenv("INPUT_CLASS_NAME", "GitHubIssues")
         self.batch_size = int(os.getenv("INPUT_BATCH_SIZE", "100"))
         self.state = os.getenv("INPUT_STATE", "all")  # all, open, closed
         
@@ -58,19 +62,41 @@ class GitHubIssueVectorizer:
         if missing_inputs:
             raise ValueError(f"Missing required inputs: {', '.join(missing_inputs)}")
 
+    def _get_vectorizer_method(self) -> _ConfigCreateModel:
+        """Map vectorizer name to the corresponding Configure.Vectors method."""
+        vectorizer_map = {
+            "text2vec-weaviate": Configure.Vectors.text2vec_weaviate,
+            "text2vec-openai": Configure.Vectors.text2vec_openai,
+            "text2vec-transformers": Configure.Vectors.text2vec_transformers,
+            "text2vec-contextionary": Configure.Vectors.text2vec_contextionary,
+            "text2vec_ollama": Configure.Vectors.text2vec_ollama,
+            "text2vec-cohere": Configure.Vectors.text2vec_cohere,
+            "text2vec-jinaai": Configure.Vectors.text2vec_jinaai,
+        }
+        if self.vectorizer not in vectorizer_map.keys():
+            raise ValueError(f"Invalid vectorizer: {self.vectorizer}. Valid vectorizers are: {', '.join(vectorizer_map.keys())}")
+        
+        return vectorizer_map[self.vectorizer]
+
     def connect_to_weaviate(self):
         """Connect to Weaviate instance and ensure schema exists."""
         try:
             # Connect to Weaviate using v4 client
             if "localhost" in self.weaviate_url:
+                if ":" in self.weaviate_url:
+                    host, port = self.weaviate_url.split(":")
+                else:
+                    host = self.weaviate_url
+                    port = 8080
                 self.client = weaviate.connect_to_local(
-                    url=self.weaviate_url,
-                    auth_credentials=weaviate.classes.init.Auth.api_key(self.weaviate_api_key) if self.weviate_api_key != "" else None,
+                    host=host,
+                    port=port,
+                    auth_credentials=weaviate.classes.init.Auth.api_key(self.weaviate_api_key) if self.weaviate_api_key != "" else None,
                 )
             else:
-                self.client = weaviate.connect_to_wcs(
-                    url=self.weaviate_url,
-                    auth_credentials=weaviate.classes.init.Auth.api_key(self.weaviate_api_key) if self.weviate_api_key != "" else None,
+                self.client = weaviate.connect_to_weaviate_cloud(
+                    cluster_url=self.weaviate_url,
+                    auth_credentials=weaviate.classes.init.Auth.api_key(self.weaviate_api_key) if self.weaviate_api_key != "" else None,
                 )
             
             logger.info(f"Connected to Weaviate at {self.weaviate_url}")
@@ -86,76 +112,113 @@ class GitHubIssueVectorizer:
     def _ensure_schema_exists(self):
         """Ensure the GitHubIssue class exists in Weaviate."""
         # Check if class exists
-            # This will raise an exception if the class doesn't exist
         if self.client.collections.exists(self.class_name):
             logger.info(f"Schema class {self.class_name} already exists in Weaviate")
         else:
-            # Define class for GitHub issues
+            # Get the vectorizer method
+            vectorizer_method = self._get_vectorizer_method()
+            
+            # Define class for GitHub issues with named vectors
             self.client.collections.create(
                 name=self.class_name,
                 description="GitHub issue vectorized for semantic search",
-                vectorizer_config=Configure.Vectorizer.text2vec_contextionary(),
+                vector_config=[
+                    # Default vector containing all vectorizable properties
+                    vectorizer_method(
+                        name="default",
+                        vector_index_config=Configure.VectorIndex.hnsw(),
+                    ),
+                    # Named vector for title only
+                    vectorizer_method(
+                        name="title",
+                        source_properties=["title"],
+                        vector_index_config=Configure.VectorIndex.hnsw(),
+                    ),
+                    # Named vector for body only
+                    vectorizer_method(
+                        name="body",
+                        source_properties=["body"],
+                        vector_index_config=Configure.VectorIndex.hnsw(),
+                    ),
+                    # Named vector for title and body combined
+                    vectorizer_method(
+                        name="title_body",
+                        source_properties=["title", "body"],
+                        vector_index_config=Configure.VectorIndex.hnsw(),
+                    ),
+                ],
                 properties=[
-                    {
-                        "name": "title",
-                        "dataType": ["text"],
-                        "description": "The title of the GitHub issue",
-                        "vectorizePropertyName": True,
-                    },
-                    {
-                        "name": "body",
-                        "dataType": ["text"],
-                        "description": "The body content of the GitHub issue",
-                        "vectorizePropertyName": True,
-                    },
-                    {
-                        "name": "url",
-                        "dataType": ["string"],
-                        "description": "URL to the GitHub issue",
-                    },
-                    {
-                        "name": "number",
-                        "dataType": ["int"],
-                        "description": "The issue number",
-                    },
-                    {
-                        "name": "state",
-                        "dataType": ["string"],
-                        "description": "State of the issue (open or closed)",
-                    },
-                    {
-                        "name": "createdAt",
-                        "dataType": ["date"],
-                        "description": "When the issue was created",
-                    },
-                    {
-                        "name": "updatedAt",
-                        "dataType": ["date"],
-                        "description": "When the issue was last updated",
-                    },
-                    {
-                        "name": "closedAt",
-                        "dataType": ["date"],
-                        "description": "When the issue was closed, if applicable",
-                    },
-                    {
-                        "name": "labels",
-                        "dataType": ["string[]"],
-                        "description": "Labels attached to the issue",
-                    },
-                    {
-                        "name": "author",
-                        "dataType": ["string"],
-                        "description": "Username of the author",
-                    },
-                    {
-                        "name": "repository",
-                        "dataType": ["string"],
-                        "description": "Full repository name (owner/repo)",
-                    }
+                    Property(
+                        name="title",
+                        data_type=DataType.TEXT,
+                        vectorize_property_name=True,
+                        tokenization=Tokenization.LOWERCASE,
+                        description="The title of the GitHub issue",
+                    ),
+                    Property(
+                        name="body",
+                        data_type=DataType.TEXT,
+                        vectorize_property_name=True,
+                        tokenization=Tokenization.LOWERCASE,
+                        description="The body content of the GitHub issue",
+                    ),
+                    Property(
+                        name="url",
+                        data_type=DataType.TEXT,
+                        skip_vectorization=True,
+                        description="URL to the GitHub issue",
+                    ),
+                    Property(
+                        name="number",
+                        data_type=DataType.INT,
+                        skip_vectorization=True,
+                        description="The issue number",
+                    ),
+                    Property(
+                        name="state",
+                        data_type=DataType.TEXT,
+                        skip_vectorization=True,
+                        description="State of the issue (open or closed)",
+                    ),
+                    Property(
+                        name="createdAt",
+                        data_type=DataType.DATE,
+                        skip_vectorization=True,
+                        description="When the issue was created",
+                    ),
+                    Property(
+                        name="updatedAt",
+                        data_type=DataType.DATE,
+                        skip_vectorization=True,
+                        description="When the issue was last updated",
+                    ),
+                    Property(
+                        name="closedAt",
+                        data_type=DataType.DATE,
+                        skip_vectorization=True,
+                        description="When the issue was closed, if applicable",
+                    ),
+                    Property(
+                        name="labels",
+                        data_type=DataType.TEXT_ARRAY,
+                        skip_vectorization=True,
+                        description="Labels attached to the issue",
+                    ),
+                    Property(
+                        name="author",
+                        data_type=DataType.TEXT,
+                        skip_vectorization=True,
+                        description="Username of the author",
+                    ),
+                    Property(
+                        name="repository",
+                        data_type=DataType.TEXT,
+                        skip_vectorization=True,
+                        description="Full repository name (owner/repo)",
+                    )
                 ]
             )
-            logger.info(f"Created schema class {self.class_name} in Weaviate")
+            logger.info(f"Created schema class {self.class_name} in Weaviate with named vectors")
 
     def fetch_github_issues(self) -> List[Dict[str, Any]]:
         """Fetch issues from GitHub repository using the GitHub API."""
@@ -231,20 +294,20 @@ class GitHubIssueVectorizer:
                 # Process issue into a Weaviate object
                 issue_data = {
                     "title": issue["title"],
-                    "body": issue["body"] if issue["body"] else "",
+                    "body": issue["body"] if issue["body"] else None,
                     "url": issue["html_url"],
                     "number": issue["number"],
                     "state": issue["state"],
                     "createdAt": issue["created_at"],
                     "updatedAt": issue["updated_at"],
                     "closedAt": issue["closed_at"] if issue["closed_at"] else None,
-                    "labels": [label["name"] for label in issue["labels"]],
-                    "author": issue["user"]["login"] if issue["user"] else "",
+                    "labels": [label["name"] for label in issue["labels"]] if issue["labels"] else None,
+                    "author": issue["user"]["login"] if issue["user"] else None,
                     "repository": f"{self.repo_owner}/{self.repo_name}"
                 }
                 
                 # Create a unique ID for the issue
-                unique_id = f"{self.repo_owner}_{self.repo_name}_{issue['number']}"
+                unique_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{self.repo_owner}_{self.repo_name}_{issue['number']}"))
                 
                 # Add to batch - note the API is different in v4
                 batch.add_object(

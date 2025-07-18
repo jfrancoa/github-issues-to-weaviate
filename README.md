@@ -43,6 +43,7 @@ vectorize:
 | `target_owner` | No | GitHub repository owner (defaults to current repository owner) |
 | `target_repo` | No | GitHub repository name (defaults to current repository name) |
 | `class_name` | No | Weaviate class name to store issues (defaults to `GitHubIssue`) |
+| `vectorizer` | No | Vectorizer used to vectorize all the github issues (defaults to `text2vec-weaviate`) |
 | `batch_size` | No | Number of issues to process in a single batch (defaults to 25) |
 
 ## Local Testing

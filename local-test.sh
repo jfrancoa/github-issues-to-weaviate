@@ -15,7 +15,8 @@ WEAVIATE_API_KEY=${WEAVIATE_API_KEY:-"your-api-key"}
 GITHUB_TOKEN=${GITHUB_TOKEN:-"your-github-token"}
 TARGET_OWNER=${TARGET_OWNER:-""}
 TARGET_REPO=${TARGET_REPO:-""}
-CLASS_NAME=${CLASS_NAME:-"GitHubIssue"}
+CLASS_NAME=${CLASS_NAME:-"GitHubIssues"}
+VECTORIZER=${VECTORIZER:-"text2vec-transformers"}
 BATCH_SIZE=${BATCH_SIZE:-100}
 
 # Check if GitHub token is provided or warn user
@@ -36,6 +37,7 @@ docker run --rm \
 -e INPUT_TARGET_OWNER="$TARGET_OWNER" \
 -e INPUT_TARGET_REPO="$TARGET_REPO" \
 -e INPUT_CLASS_NAME="$CLASS_NAME" \
+-e INPUT_VECTORIZER="$VECTORIZER" \
 -e INPUT_BATCH_SIZE="$BATCH_SIZE" \
 -e GITHUB_REPOSITORY="${TARGET_OWNER:-$(whoami)}/${TARGET_REPO:-test-repo}" \
 github-issues-vectorizer:test

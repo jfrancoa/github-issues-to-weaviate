@@ -24,7 +24,11 @@ inputs:
   class_name:
     description: 'Weaviate class name to store the vectorized issues'
     required: false
-    default: 'GitHubIssue'
+    default: 'GitHubIssues'
+  vectorizer:
+    description: 'Vectorizer to use for the issues'
+    required: false
+    default: 'text2vec-weaviate'
   batch_size:
     description: 'Number of issues to process in a single batch'
     required: false
