@@ -23,7 +23,7 @@ vectorize:
     runs-on: ubuntu-latest
     steps:
     - name: Vectorize GitHub Issues
-        uses: username/github-issues-to-weaviate@v1
+        uses: jfrancoa/github-issues-to-weaviate@v1
         with:
         weaviate_url: ${{ secrets.WEAVIATE_URL }}
         weaviate_api_key: ${{ secrets.WEAVIATE_API_KEY }}
@@ -45,7 +45,7 @@ vectorize:
 | `class_name` | No | Weaviate class name to store issues (defaults to `GitHubIssue`) |
 | `vectorizer` | No | Vectorizer used to vectorize all the github issues (defaults to `text2vec-weaviate`) |
 | `batch_size` | No | Number of issues to process in a single batch (defaults to 100) |
-| `include_closed` | No | Whether to include closed issues (defaults to true) |
+| `state` | No | Weather vectorizing only `closed`, `open` or `all` issues (defaults to `all`) |
 | `include_comments` | No | Whether to include issue comments in vectorization (defaults to true) |
 
 ## Local Testing

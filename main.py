@@ -126,7 +126,14 @@ class GitHubIssueVectorizer:
         """Connect to Weaviate instance and ensure schema exists."""
         try:
             # Connect to Weaviate using v4 client
-            if "localhost" in self.weaviate_url:
+            if (
+                "localhost" in self.weaviate_url
+                or "host.docker.internal" in self.weaviate_url
+            ):
+                # Remove http:// or https:// from the url
+                self.weaviate_url = self.weaviate_url.replace("http://", "").replace(
+                    "https://", ""
+                )
                 if ":" in self.weaviate_url:
                     host, port = self.weaviate_url.split(":")
                 else:

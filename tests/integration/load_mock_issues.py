@@ -1,6 +1,7 @@
 """
 Load mock issues into the GitHub repository.
 """
+
 import os
 import json
 import requests
@@ -33,14 +34,14 @@ for issue in issues:
     # Add comments if present
     for comment in issue.get("comments", []):
         comment_body = comment["body"]
-        comment_payload = {"body": f"{comment_body}"}
+        comment_payload = {"body": comment_body}
         c_resp = requests.post(
             f"https://api.github.com/repos/{GITHUB_REPO}/issues/{data['number']}/comments",
             headers=headers,
             json=comment_payload,
         )
         c_resp.raise_for_status()
-        print(f"  Added comment")
+        print("  Added comment")
 
 with open(os.path.join(os.path.dirname(__file__), "created_issues.json"), "w") as f:
     json.dump(created, f)

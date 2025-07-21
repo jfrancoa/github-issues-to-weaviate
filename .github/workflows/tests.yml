@@ -1,4 +1,5 @@
-name: Integration Tests
+name: Tests
+
 
 on:
   push:
@@ -7,8 +8,36 @@ on:
     branches: [main]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install ruff black
+      - name: Run ruff
+        uses: astral-sh/ruff-action@v3
+      - name: Run black (check only)
+        run: black --check . 
+          
+  unit-tests:
+    needs: [lint]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -r requirements-dev.txt
+      - name: Run pytest
+        run: pytest tests/unit/ --maxfail=1 --disable-warnings -q 
 
   get-latest-weaviate-version:
+    needs: [unit-tests]
     runs-on: ubuntu-latest
     name: Get latest Weaviate version
     outputs:
@@ -21,18 +50,23 @@ jobs:
   integration-tests:
     needs: [get-latest-weaviate-version]
     env:
+      GITHUB_TOKEN: ${{ secrets.GH_PAT_ADMIN }}
+      GITHUB_REPO: ${{ github.repository }}
       WEAVIATE_VERSION: ${{ needs.get-latest-weaviate-version.outputs.LATEST_WEAVIATE_VERSION }}
       MODULES: "text2vec-transformers"
       LOG_LEVEL: debug
+      INPUT_WEAVIATE_URL: http://localhost
+      INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      INPUT_TARGET_REPO_NAME: weaviate
+      INPUT_TARGET_REPO_OWNER: weaviate
+      INPUT_VECTORIZER: text2vec-transformers
+      INPUT_INCLUDE_COMMENTS: true
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.12
       - run: pip install -r requirements.txt
       - name: Start up Weaviate cluster
         uses: weaviate/weaviate-local-k8s@v2
@@ -47,20 +81,15 @@ jobs:
         id: load-mock-issues  
         run: |
           python tests/integration/load_mock_issues.py
+      # Run the python script directly as the action runs on a docker container
+      # and it can't reach localhost on Linux VMs.
       - name: Run the github-issues-to-weaviate action
-        uses: ./
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          weaviate_url: http://localhost:8080
-          target_repo_name: ${{ github.repository}}
-          target_repo_owner: ${{ github.repository_owner }}
-          vectorizer: text2vec-transformers
-          include_comments: true
-
+        run: |
+          python main.py
       - name: Run integration tests with pytest
         run: |
           pip install pytest-html
-          pytest tests/integration/ --html=test-report-${{ matrix.python-version }}.html --self-contained-html 
+          pytest tests/integration/ --html=test-report.html --self-contained-html 
       - name: Delete mock issues
         if: ${{ always() && steps.load-mock-issues.conclusion == 'success' }}
         run: |

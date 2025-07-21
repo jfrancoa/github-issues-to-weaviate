@@ -1,6 +1,7 @@
 """
 Delete mock issues from the GitHub repository.
 """
+
 import os
 import json
 import requests
