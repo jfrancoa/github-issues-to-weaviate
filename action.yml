@@ -26,17 +26,22 @@ inputs:
     required: false
     default: 'GitHubIssues'
   vectorizer:
-    description: 'Vectorizer to use for the issues'
+    description: 'Vectorizer to use for the issues. Supported: text2vec-weaviate, text2vec-openai, text2vec-cohere, text2vec-jinaai, text2vec-ollama, text2vec-transformers, text2vec-contextionary'
     required: false
     default: 'text2vec-weaviate'
   batch_size:
     description: 'Number of issues to process in a single batch'
     required: false
     default: '100'
-  include_closed:
-    description: 'Whether to include closed issues (true/false)'
+  state:
+    description: 'State of the issues to fetch (all, open, closed)'
+    required: false
+    default: 'all'
+  include_comments:
+    description: 'Whether to include issue comments in the vectorization (true/false)'
     required: false
     default: 'true'
+
 
 runs:
   using: 'docker'

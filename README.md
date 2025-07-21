@@ -44,7 +44,9 @@ vectorize:
 | `target_repo` | No | GitHub repository name (defaults to current repository name) |
 | `class_name` | No | Weaviate class name to store issues (defaults to `GitHubIssue`) |
 | `vectorizer` | No | Vectorizer used to vectorize all the github issues (defaults to `text2vec-weaviate`) |
-| `batch_size` | No | Number of issues to process in a single batch (defaults to 25) |
+| `batch_size` | No | Number of issues to process in a single batch (defaults to 100) |
+| `include_closed` | No | Whether to include closed issues (defaults to true) |
+| `include_comments` | No | Whether to include issue comments in vectorization (defaults to true) |
 
 ## Local Testing
 
@@ -77,10 +79,26 @@ The action:
 
 1. Authenticates with the GitHub API using the provided token
 2. Fetches all issues from the specified repository
-3. Processes issues and their metadata
-4. Connects to the Weaviate instance
-5. Creates the Weaviate schema if it doesn't exist
-6. Vectorizes and stores the issues in Weaviate
+3. Optionally fetches all comments for each issue
+4. Processes issues, comments, and their metadata
+5. Connects to the Weaviate instance
+6. Creates the Weaviate schema if it doesn't exist
+7. Vectorizes and stores the issues in Weaviate with multiple named vectors
+
+## Vector Search Capabilities
+
+The action creates multiple named vectors for different search scenarios:
+
+- **default**: Contains all vectorizable properties (title, body, comments)
+- **title**: Search only in issue titles
+- **body**: Search only in issue descriptions
+- **title_body**: Search in both title and description
+- **comments**: Search only in issue comments
+- **all_content**: Search across title, body, and comments combined
+
+This allows for targeted semantic search depending on your needs. For example, you can search for specific technical discussions in comments or focus on issue titles for quick topic matching.
+
+See `search_examples.py` for practical examples of how to use these different search vectors.
 
 ## Limitations
 
@@ -91,3 +109,35 @@ The action:
 ## License
 
 See the [LICENSE](LICENSE) file for details.
+
+## Development & CI
+
+### Linting
+
+Run ruff for linting:
+
+```bash
+ruff check .
+```
+
+Run black for formatting:
+
+```bash
+black .
+```
+
+### Testing
+
+Run all tests with pytest:
+
+```bash
+pytest
+```
+
+### CI
+
+CI will run ruff, black, and pytest on every push and pull request. See .github/workflows/ for details.
+
+### Integration Tests
+
+Integration tests will spin up a local Weaviate instance and run queries to validate end-to-end functionality. See planned .github/workflows/integration-tests.yml for details.

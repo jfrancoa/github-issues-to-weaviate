@@ -1,0 +1,67 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  get-latest-weaviate-version:
+    runs-on: ubuntu-latest
+    name: Get latest Weaviate version
+    outputs:
+      LATEST_WEAVIATE_VERSION: ${{ steps.latest-version.outputs.latest_weaviate_version }}
+    steps:
+      - name: Retrieve latest Weaviate version
+        id: latest-version
+        uses: weaviate/github-common-actions/.github/actions/get-latest-weaviate-version@main
+
+  integration-tests:
+    needs: [get-latest-weaviate-version]
+    env:
+      WEAVIATE_VERSION: ${{ needs.get-latest-weaviate-version.outputs.LATEST_WEAVIATE_VERSION }}
+      MODULES: "text2vec-transformers"
+      LOG_LEVEL: debug
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -r requirements.txt
+      - name: Start up Weaviate cluster
+        uses: weaviate/weaviate-local-k8s@v2
+        with:
+          workers: 1
+          replicas: 1
+          weaviate-version: ${{ env.WEAVIATE_VERSION }}
+          modules: ${{ env.MODULES }}
+          enable-backup: false
+          dynamic-users: false
+      - name: Load mock issues
+        id: load-mock-issues  
+        run: |
+          python tests/integration/load_mock_issues.py
+      - name: Run the github-issues-to-weaviate action
+        uses: ./
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          weaviate_url: http://localhost:8080
+          target_repo_name: ${{ github.repository}}
+          target_repo_owner: ${{ github.repository_owner }}
+          vectorizer: text2vec-transformers
+          include_comments: true
+
+      - name: Run integration tests with pytest
+        run: |
+          pip install pytest-html
+          pytest tests/integration/ --html=test-report-${{ matrix.python-version }}.html --self-contained-html 
+      - name: Delete mock issues
+        if: ${{ always() && steps.load-mock-issues.conclusion == 'success' }}
+        run: |
+          python tests/integration/delete_mock_issues.py

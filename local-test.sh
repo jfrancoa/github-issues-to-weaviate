@@ -17,6 +17,7 @@ TARGET_OWNER=${TARGET_OWNER:-""}
 TARGET_REPO=${TARGET_REPO:-""}
 CLASS_NAME=${CLASS_NAME:-"GitHubIssues"}
 VECTORIZER=${VECTORIZER:-"text2vec-transformers"}
+INCLUDE_COMMENTS=${INCLUDE_COMMENTS:-"false"}
 BATCH_SIZE=${BATCH_SIZE:-100}
 
 # Check if GitHub token is provided or warn user
@@ -26,7 +27,7 @@ fi
 
 # Build the Docker image locally
 echo -e "${GREEN}Building Docker image...${NC}"
-docker build -t github-issues-vectorizer:test .
+docker build --load -t github-issues-vectorizer:test .
 
 # Run the Docker container with simulated environment variables
 echo -e "${GREEN}Running container with simulated GitHub Actions environment...${NC}"
@@ -39,6 +40,7 @@ docker run --rm \
 -e INPUT_CLASS_NAME="$CLASS_NAME" \
 -e INPUT_VECTORIZER="$VECTORIZER" \
 -e INPUT_BATCH_SIZE="$BATCH_SIZE" \
+-e INPUT_INCLUDE_COMMENTS="$INCLUDE_COMMENTS" \
 -e GITHUB_REPOSITORY="${TARGET_OWNER:-$(whoami)}/${TARGET_REPO:-test-repo}" \
 github-issues-vectorizer:test
 
