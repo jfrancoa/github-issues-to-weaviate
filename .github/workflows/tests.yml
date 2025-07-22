@@ -57,8 +57,8 @@ jobs:
       LOG_LEVEL: debug
       INPUT_WEAVIATE_URL: http://localhost
       INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      INPUT_TARGET_REPO_NAME: weaviate
-      INPUT_TARGET_REPO_OWNER: weaviate
+      INPUT_TARGET_REPO_NAME: github-issues-to-weaviate
+      INPUT_TARGET_REPO_OWNER: jfrancoa
       INPUT_VECTORIZER: text2vec-transformers
       INPUT_INCLUDE_COMMENTS: true
     runs-on: ubuntu-latest
