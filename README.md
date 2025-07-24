@@ -29,8 +29,7 @@ vectorize:
         weaviate_api_key: ${{ secrets.WEAVIATE_API_KEY }}
         github_token: ${{ secrets.GITHUB_TOKEN }}
         # Optional: specify a different repository
-        # target_owner: "different-owner"
-        # target_repo: "different-repo"
+        # target_repository: "owner/repo"
 ```
 
 ## Input Parameters
@@ -40,9 +39,8 @@ vectorize:
 | `weaviate_url` | Yes | URL of your Weaviate instance |
 | `weaviate_api_key` | Yes | API key for your Weaviate instance |
 | `github_token` | Yes | GitHub token with permissions to read issues |
-| `target_owner` | No | GitHub repository owner (defaults to current repository owner) |
-| `target_repo` | No | GitHub repository name (defaults to current repository name) |
-| `class_name` | No | Weaviate class name to store issues (defaults to `GitHubIssue`) |
+| `target_repository` | No | GitHub repository name to query issues from, in format owner/repo (defaults to current repository full name) |
+| `collection_name` | No | Weaviate collection name to store issues (defaults to `GitHubIssue`) |
 | `vectorizer` | No | Vectorizer used to vectorize all the github issues (defaults to `text2vec-weaviate`) |
 | `batch_size` | No | Number of issues to process in a single batch (defaults to 100) |
 | `state` | No | Weather vectorizing only `closed`, `open` or `all` issues (defaults to `all`) |
@@ -62,8 +60,7 @@ chmod +x local-test.sh
 WEAVIATE_URL=https://your-weaviate-instance.com
 WEAVIATE_API_KEY=your-api-key
 GITHUB_TOKEN=your-github-token
-TARGET_OWNER=optional-target-owner
-TARGET_REPO=optional-target-repo
+TARGET_REPOSITORY="optional-target-owner/optional-target-repo"
 ```
 
 3. Run the test script:
