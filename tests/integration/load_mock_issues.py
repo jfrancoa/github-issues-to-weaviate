@@ -7,14 +7,14 @@ import json
 import requests
 
 MOCK_ISSUES_PATH = os.path.join(os.path.dirname(__file__), "mock_issues.json")
-GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
+GITHUB_PAT = os.environ["GITHUB_PAT"]
 GITHUB_REPO = os.environ["GITHUB_REPOSITORY"]  # format: owner/repo
 
 with open(MOCK_ISSUES_PATH) as f:
     issues = json.load(f)
 
 headers = {
-    "Authorization": f"token {GITHUB_TOKEN}",
+    "Authorization": f"token {GITHUB_PAT}",
     "Accept": "application/vnd.github.v3+json",
 }
 

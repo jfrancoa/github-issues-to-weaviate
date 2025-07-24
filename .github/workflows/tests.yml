@@ -50,17 +50,16 @@ jobs:
   integration-tests:
     needs: [get-latest-weaviate-version]
     env:
-      GITHUB_TOKEN: ${{ secrets.GH_PAT_ADMIN }}
+      GITHUB_PAT: ${{ secrets.GH_PAT_ADMIN }}
       GITHUB_REPO: ${{ github.repository }}
       WEAVIATE_VERSION: ${{ needs.get-latest-weaviate-version.outputs.LATEST_WEAVIATE_VERSION }}
       MODULES: "text2vec-transformers"
       LOG_LEVEL: debug
-      INPUT_WEAVIATE_URL: http://localhost
-      INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      INPUT_TARGET_REPO_NAME: github-issues-to-weaviate
-      INPUT_TARGET_REPO_OWNER: jfrancoa
-      INPUT_VECTORIZER: text2vec-transformers
-      INPUT_INCLUDE_COMMENTS: true
+      WEAVIATE_URL: http://localhost
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #TARGET_REPOSITORY: "weaviate/github-issues-to-weaviate"
+      VECTORIZER: text2vec-transformers
+      INCLUDE_COMMENTS: true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -23,7 +23,7 @@ vectorize:
     runs-on: ubuntu-latest
     steps:
     - name: Vectorize GitHub Issues
-        uses: jfrancoa/github-issues-to-weaviate@v1
+        uses: weaviate/github-issues-to-weaviate@v1
         with:
         weaviate_url: ${{ secrets.WEAVIATE_URL }}
         weaviate_api_key: ${{ secrets.WEAVIATE_API_KEY }}

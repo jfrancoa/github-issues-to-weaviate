@@ -13,9 +13,8 @@ echo -e "${YELLOW}Setting up local test environment for GitHub Issues Vectorizer
 WEAVIATE_URL=${WEAVIATE_URL:-"http://localhost:8080"}
 WEAVIATE_API_KEY=${WEAVIATE_API_KEY:-"your-api-key"}
 GITHUB_TOKEN=${GITHUB_TOKEN:-"your-github-token"}
-TARGET_OWNER=${TARGET_OWNER:-""}
-TARGET_REPO=${TARGET_REPO:-""}
-CLASS_NAME=${CLASS_NAME:-"GitHubIssues"}
+TARGET_REPOSITORY=${TARGET_REPOSITORY:-""}
+COLLECTION_NAME=${COLLECTION_NAME:-"GitHubIssues"}
 VECTORIZER=${VECTORIZER:-"text2vec-transformers"}
 INCLUDE_COMMENTS=${INCLUDE_COMMENTS:-"false"}
 BATCH_SIZE=${BATCH_SIZE:-100}
@@ -32,16 +31,14 @@ docker build --load -t github-issues-vectorizer:test .
 # Run the Docker container with simulated environment variables
 echo -e "${GREEN}Running container with simulated GitHub Actions environment...${NC}"
 docker run --rm \
--e INPUT_WEAVIATE_URL="$WEAVIATE_URL" \
--e INPUT_WEAVIATE_API_KEY="$WEAVIATE_API_KEY" \
--e INPUT_GITHUB_TOKEN="$GITHUB_TOKEN" \
--e INPUT_TARGET_OWNER="$TARGET_OWNER" \
--e INPUT_TARGET_REPO="$TARGET_REPO" \
--e INPUT_CLASS_NAME="$CLASS_NAME" \
--e INPUT_VECTORIZER="$VECTORIZER" \
--e INPUT_BATCH_SIZE="$BATCH_SIZE" \
--e INPUT_INCLUDE_COMMENTS="$INCLUDE_COMMENTS" \
--e GITHUB_REPOSITORY="${TARGET_OWNER:-$(whoami)}/${TARGET_REPO:-test-repo}" \
+-e WEAVIATE_URL="$WEAVIATE_URL" \
+-e WEAVIATE_API_KEY="$WEAVIATE_API_KEY" \
+-e GITHUB_TOKEN="$GITHUB_TOKEN" \
+-e TARGET_REPOSITORY="$TARGET_REPOSITORY" \
+-e COLLECTION_NAME="$COLLECTION_NAME" \
+-e VECTORIZER="$VECTORIZER" \
+-e BATCH_SIZE="$BATCH_SIZE" \
+-e INCLUDE_COMMENTS="$INCLUDE_COMMENTS" \
 github-issues-vectorizer:test
 
 echo -e "${GREEN}Local test completed!${NC}"
@@ -49,9 +46,8 @@ echo -e "${GREEN}Local test completed!${NC}"
 # Usage instructions
 echo -e "${YELLOW}Usage Notes:${NC}"
 echo "- Set environment variables before running to customize inputs:"
-echo "  WEAVIATE_URL, WEAVIATE_API_KEY, GITHUB_TOKEN, etc."
-echo "- Example: GITHUB_TOKEN=xyz WEAVIATE_URL=http://weaviate:8080 ./local-test.sh"
-echo "- If TARGET_OWNER and TARGET_REPO are empty, the action will use the current repository"
+echo "  WEAVIATE_URL, WEAVIATE_API_KEY, GITHUB_TOKEN, TARGET_REPOSITORY, etc."
+echo "- Example: TARGET_REPOSITORY=weaviate/weaviate GITHUB_TOKEN=xyz WEAVIATE_URL=http://weaviate:8080 ./local-test.sh"
 
 # Make the script executable
 chmod +x ./local-test.sh

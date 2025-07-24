@@ -7,18 +7,18 @@ import json
 import requests
 
 CREATED_ISSUES_PATH = os.path.join(os.path.dirname(__file__), "created_issues.json")
-GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
+GITHUB_PAT = os.environ["GITHUB_PAT"]
 GITHUB_REPO = os.environ["GITHUB_REPOSITORY"]  # format: owner/repo
 
 with open(CREATED_ISSUES_PATH) as f:
     issue_numbers = json.load(f)
 
 headers_rest = {
-    "Authorization": f"token {GITHUB_TOKEN}",
+    "Authorization": f"token {GITHUB_PAT}",
     "Accept": "application/vnd.github.v3+json",
 }
 headers_graphql = {
-    "Authorization": f"bearer {GITHUB_TOKEN}",
+    "Authorization": f"bearer {GITHUB_PAT}",
     "Accept": "application/vnd.github.v3+json",
     "Content-Type": "application/json",
 }

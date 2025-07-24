@@ -26,14 +26,23 @@ METADATA_COLLECTION_NAME = "ProcessingState"
 class GitHubIssueVectorizer:
     def __init__(self):
         # Get inputs from GitHub Action
-        self.github_token = os.getenv("INPUT_GITHUB_TOKEN")
-        self.weaviate_url = os.getenv("INPUT_WEAVIATE_URL")
-        self.weaviate_api_key = os.getenv("INPUT_WEAVIATE_API_KEY", "")
+        self.github_token = os.getenv("GITHUB_TOKEN")
+        self.weaviate_url = os.getenv("WEAVIATE_URL")
+        self.weaviate_api_key = os.getenv("WEAVIATE_API_KEY", "")
 
-        # Optional: Set custom repository (default is the current repository)
-        self.repo_owner = os.getenv("INPUT_TARGET_REPO_OWNER", "")
-        self.repo_name = os.getenv("INPUT_TARGET_REPO_NAME", "")
-        self.vectorizer = os.getenv("INPUT_VECTORIZER", "text2vec-weaviate")
+        # Use the TARGET_REPOSITORY input if provided, otherwise fall back to the GitHub Actions default env
+        repo_full_name = os.environ.get("TARGET_REPOSITORY")
+        if not repo_full_name:
+            repo_full_name = os.environ.get("GITHUB_REPOSITORY", "")
+
+        if not repo_full_name:
+            print(
+                "Error: Repository full name is not set. Please specify target_repository input."
+            )
+            exit(1)
+
+        self.repo_owner, self.repo_name = repo_full_name.split("/", 1)
+        self.vectorizer = os.getenv("VECTORIZER", "text2vec-weaviate")
 
         # GitHub repository context from environment (for current repo)
         if not self.repo_owner or not self.repo_name:
@@ -42,12 +51,10 @@ class GitHubIssueVectorizer:
                 self.repo_owner, self.repo_name = github_repository.split("/", 1)
 
         # Optional parameters
-        self.collection_name = os.getenv("INPUT_collection_name", "GitHubIssues")
-        self.batch_size = int(os.getenv("INPUT_BATCH_SIZE", "100"))
-        self.state = os.getenv("INPUT_STATE", "all")  # all, open, closed
-        self.include_comments = (
-            os.getenv("INPUT_INCLUDE_COMMENTS", "true").lower() == "true"
-        )
+        self.collection_name = os.getenv("COLLECTION_NAME", "GitHubIssues")
+        self.batch_size = int(os.getenv("BATCH_SIZE", "100"))
+        self.state = os.getenv("STATE", "all")  # all, open, closed
+        self.include_comments = os.getenv("INCLUDE_COMMENTS", "true").lower() == "true"
 
         # Validate required inputs
         self._validate_inputs()

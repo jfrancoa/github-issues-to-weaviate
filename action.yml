@@ -7,22 +7,17 @@ inputs:
     description: 'URL of the Weaviate instance'
     required: true
   weaviate_api_key:
-    description: 'API key for authenticating with Weaviate'
-    required: true
+    description: 'API key for authenticating with Weaviate. Default: empty'
+    required: false
+    default: ''
   github_token:
     description: 'GitHub token to access issues'
     required: true
-    default: ${{ github.token }}
-  target_repo_owner:
-    description: 'Owner of the GitHub repository to fetch issues from (optional, defaults to current repo)'
+  target_repository:
+    description: 'Name of the GitHub repository to fetch issues from (optional, defaults to current repo). Format: owner/repo, for example: weaviate/weaviate'
     required: false
-    default: ${{ github.repository_owner }}
-  target_repo_name:
-    description: 'Name of the GitHub repository to fetch issues from (optional, defaults to current repo)'
-    required: false
-    default: ${{ github.event.repository.name }}
-  class_name:
-    description: 'Weaviate class name to store the vectorized issues'
+  collection_name:
+    description: 'Weaviate collection name to store the vectorized issues. Default: GitHubIssues'
     required: false
     default: 'GitHubIssues'
   vectorizer:
@@ -46,6 +41,16 @@ inputs:
 runs:
   using: 'docker'
   image: 'Dockerfile'
+  env:
+    GITHUB_TOKEN: ${{ inputs.github_token }}
+    WEAVIATE_URL: ${{ inputs.weaviate_url }}
+    WEAVIATE_API_KEY: ${{ inputs.weaviate_api_key }}
+    TARGET_REPOSITORY: ${{ inputs.target_repository }}
+    COLLECTION_NAME: ${{ inputs.collection_name }}
+    VECTORIZER: ${{ inputs.vectorizer }}
+    BATCH_SIZE: ${{ inputs.batch_size }}
+    STATE: ${{ inputs.state }}
+    INCLUDE_COMMENTS: ${{ inputs.include_comments }}
 
 branding:
   icon: 'database'

@@ -7,10 +7,9 @@ def make_vectorizer():
     with patch.dict(
         "os.environ",
         {
-            "INPUT_GITHUB_TOKEN": "dummy",
-            "INPUT_WEAVIATE_URL": "http://localhost:8080",
-            "INPUT_TARGET_REPO_OWNER": "owner",
-            "INPUT_TARGET_REPO_NAME": "repo",
+            "GITHUB_TOKEN": "dummy",
+            "WEAVIATE_URL": "http://localhost:8080",
+            "TARGET_REPOSITORY": "owner/repo",
         },
     ):
         return GitHubIssueVectorizer()
