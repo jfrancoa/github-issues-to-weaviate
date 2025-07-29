@@ -207,11 +207,17 @@ class GitHubIssueVectorizer:
             metadata_object = metadata.objects[0]
             metadata_collection.data.update(
                 uuid=metadata_object.uuid,
-                properties={"lastProcessedTimestamp": timestamp},
+                properties={
+                    "lastProcessedTimestamp": timestamp,
+                    "repository": f"{self.repo_owner}/{self.repo_name}",
+                },
             )
         else:
             metadata_collection.data.insert(
-                properties={"lastProcessedTimestamp": timestamp}
+                properties={
+                    "lastProcessedTimestamp": timestamp,
+                    "repository": f"{self.repo_owner}/{self.repo_name}",
+                }
             )
 
     def fetch_github_issues(

@@ -1,6 +1,6 @@
 name: 'GitHub Issues to Weaviate'
 description: 'Reads GitHub issues and vectorizes them into a Weaviate instance'
-author: 'GitHub Action User'
+author: 'Weaviate'
 
 inputs:
   weaviate_url:
@@ -54,5 +54,5 @@ runs:
 
 branding:
   icon: 'database'
-  color: 'blue'
+  color: 'green'
 
